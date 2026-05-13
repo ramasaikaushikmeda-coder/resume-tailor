@@ -1,1 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ResumeAI — Kaushik's Tailor</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c27;
+    --border: #2a2a3d;
+    --accent: #7c6af7;
+    --accent2: #f7c06a;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --success: #5af0b0;
+    --danger: #f05a7e;
+    --warning: #f7c06a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; min-height: 100vh; overflow-x: hidden; }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 20% -10%, rgba(124,106,247,0.15) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 40% at 80% 110%, rgba(247,192,106,0.08) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  .container { position: relative; z-index: 1; max-width: 500px; margin: 0 auto; padding: 0 16px 60px; }
+  .header { padding: 24px 0 16px; text-align: center; }
+  .logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 22px; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .tagline { font-size: 10px; color: var(--muted); margin-top: 3px; letter-spacing: 1.5px; text-transform: uppercase; }
+  .steps { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 16px 0; }
+  .step { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; color: var(--muted); transition: all 0.3s; font-family: 'Syne', sans-serif; }
+  .step.active { border-color: var(--accent); color: var(--accent); background: rgba(124,106,247,0.1); }
+  .step.done { border-color: var(--success); color: var(--success); background: rgba(90,240,176,0.1); }
+  .step-line { flex: 1; max-width: 40px; height: 1px; background: var(--border); transition: background 0.3s; }
+  .step-line.done { background: var(--success); }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin-bottom: 14px; animation: fadeIn 0.3s ease; }
+  .card-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); font-weight: 500; margin-bottom: 12px; font-family: 'Syne', sans-serif; }
+  .input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  input[type="text"], textarea, select { flex: 1; background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 13px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; outline: none; transition: border-color 0.2s; width: 100%; }
+  input[type="text"]:focus, textarea:focus { border-color: var(--accent); }
+  input[type="text"]::placeholder, textarea::placeholder { color: var(--muted); }
+  textarea { resize: none; height: 130px; line-height: 1.6; }
+  .upload-zone { border: 1.5px dashed var(--border); border-radius: 12px; padding: 20px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--surface2); margin-bottom: 8px; }
+  .upload-zone:active { border-color: var(--accent); background: rgba(124,106,247,0.05); }
+  .upload-icon { font-size: 24px; margin-bottom: 6px; }
+  .upload-text { font-size: 11px; color: var(--muted); line-height: 1.5; }
+  .upload-text strong { color: var(--text); }
+  #fileInput { display: none; }
+  .or-divider { text-align: center; color: var(--muted); font-size: 10px; letter-spacing: 2px; margin: 10px 0; }
+  .file-indicator { display: none; align-items: center; gap: 8px; background: rgba(90,240,176,0.08); border: 1px solid rgba(90,240,176,0.2); border-radius: 8px; padding: 7px 11px; font-size: 11px; color: var(--success); margin-bottom: 8px; }
+  .file-indicator.visible { display: flex; }
+  .file-remove { margin-left: auto; cursor: pointer; color: var(--muted); font-size: 13px; }
+  .special-input { margin-top: 10px; }
+  .special-input input { font-size: 11px; }
+  .warning-banner { display: none; background: rgba(247,192,106,0.1); border: 1px solid rgba(247,192,106,0.4); border-radius: 10px; padding: 10px 14px; font-size: 11px; color: var(--warning); margin-bottom: 12px; line-height: 1.6; }
+  .warning-banner.visible { display: block; }
+  .referral-banner { display: none; background: rgba(124,106,247,0.1); border: 1px solid rgba(124,106,247,0.4); border-radius: 10px; padding: 10px 14px; font-size: 11px; color: var(--accent); margin-bottom: 12px; line-height: 1.6; }
+  .referral-banner.visible { display: block; }
+  .btn-generate { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 12px; padding: 15px; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden; }
+  .btn-generate:active { transform: scale(0.98); }
+  .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-generate::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%); }
+  .loading-card { display: none; text-align: center; padding: 28px 20px; }
+  .loading-card.visible { display: block; }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 14px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-steps { list-style: none; text-align: left; margin-top: 16px; }
+  .loading-steps li { font-size: 11px; color: var(--muted); padding: 5px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; transition: color 0.3s; }
+  .loading-steps li.active { color: var(--accent); }
+  .loading-steps li.done { color: var(--success); }
+  .loading-steps li .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .result-card { display: none; }
+  .result-card.visible { display: block; }
+  .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 6px; }
+  .result-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .result-badge { background: rgba(90,240,176,0.15); border: 1px solid var(--success); color: var(--success); font-size: 10px; letter-spacing: 1px; padding: 3px 9px; border-radius: 20px; font-family: 'Syne', sans-serif; font-weight: 600; }
+  .score-pill { background: rgba(124,106,247,0.15); border: 1px solid var(--accent); color: var(--accent); font-size: 11px; padding: 3px 9px; border-radius: 20px; font-family: 'Syne', sans-serif; font-weight: 700; }
+  .variant-pill { background: rgba(247,192,106,0.1); border: 1px solid var(--accent2); color: var(--accent2); font-size: 10px; padding: 3px 9px; border-radius: 20px; font-family: 'Syne', sans-serif; }
+  .pages-pill { background: rgba(90,240,176,0.08); border: 1px solid rgba(90,240,176,0.3); color: var(--success); font-size: 10px; padding: 3px 9px; border-radius: 20px; font-family: 'Syne', sans-serif; }
+  .tabs { display: flex; gap: 5px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 2px; }
+  .tab { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 5px 11px; font-size: 10px; color: var(--muted); cursor: pointer; white-space: nowrap; font-family: 'DM Mono', monospace; transition: all 0.2s; }
+  .tab.active { background: rgba(124,106,247,0.12); border-color: var(--accent); color: var(--accent); }
+  .latex-output { background: #0d0d14; border: 1px solid var(--border); border-radius: 10px; padding: 13px; font-size: 10px; line-height: 1.7; color: #a8a8c8; max-height: 260px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; margin-bottom: 12px; font-family: 'DM Mono', monospace; }
+  .latex-output::-webkit-scrollbar { width: 3px; }
+  .latex-output::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .cl-preview { font-size: 11px; line-height: 1.8; color: var(--muted); background: #0d0d14; border: 1px solid var(--border); border-radius: 10px; padding: 13px; max-height: 220px; overflow-y: auto; white-space: pre-wrap; }
+  .changes-list { list-style: none; font-size: 11px; }
+  .changes-list li { padding: 6px 0; border-bottom: 1px solid var(--border); color: var(--muted); display: flex; gap: 8px; line-height: 1.5; }
+  .changes-list li:last-child { border-bottom: none; }
+  .change-icon { color: var(--accent2); flex-shrink: 0; }
+  .kw-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+  .kw-chip { background: rgba(90,240,176,0.08); border: 1px solid rgba(90,240,176,0.3); color: var(--success); font-size: 10px; padding: 2px 8px; border-radius: 20px; }
+  .kw-chip.missing { background: rgba(240,90,126,0.08); border-color: rgba(240,90,126,0.3); color: var(--danger); }
+  .intel-section { margin-bottom: 16px; }
+  .intel-title { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent2); font-family: 'Syne', sans-serif; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .intel-content { background: #0d0d14; border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-size: 11px; color: var(--muted); line-height: 1.7; white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+  .skill-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .skill-name { font-size: 10px; color: var(--text); min-width: 120px; }
+  .skill-bar-wrap { flex: 1; background: var(--surface2); border-radius: 4px; height: 6px; overflow: hidden; }
+  .skill-bar { height: 100%; border-radius: 4px; transition: width 0.8s ease; }
+  .skill-score { font-size: 10px; color: var(--muted); min-width: 30px; text-align: right; }
+  .tracker-section { margin-top: 4px; }
+  .tracker-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 10px; }
+  .tracker-row:last-child { border-bottom: none; }
+  .tracker-company { color: var(--text); font-weight: 500; flex: 1; }
+  .tracker-role { color: var(--muted); flex: 1; }
+  .tracker-date { color: var(--muted); white-space: nowrap; }
+  .status-badge { font-size: 9px; padding: 2px 7px; border-radius: 10px; cursor: pointer; white-space: nowrap; }
+  .status-to-apply { background: rgba(124,106,247,0.15); border: 1px solid var(--accent); color: var(--accent); }
+  .status-applied { background: rgba(247,192,106,0.1); border: 1px solid var(--accent2); color: var(--accent2); }
+  .status-interview { background: rgba(90,240,176,0.1); border: 1px solid var(--success); color: var(--success); }
+  .status-rejected { background: rgba(240,90,126,0.08); border: 1px solid var(--danger); color: var(--danger); }
+  .checklist { list-style: none; font-size: 11px; }
+  .checklist li { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); color: var(--muted); cursor: pointer; }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist li.checked { color: var(--success); text-decoration: line-through; }
+  .check-box { width: 14px; height: 14px; border: 1.5px solid var(--border); border-radius: 3px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 9px; margin-top: 1px; }
+  .checklist li.checked .check-box { background: var(--success); border-color: var(--success); color: #000; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 12px; }
+  .btn-action { background: var(--surface2); border: 1.5px solid var(--border); border-radius: 10px; padding: 11px 8px; color: var(--text); font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .btn-action:active { transform: scale(0.97); }
+  .btn-action.primary { background: rgba(124,106,247,0.15); border-color: var(--accent); color: var(--accent); }
+  .btn-action.amber { background: rgba(247,192,106,0.1); border-color: var(--accent2); color: var(--accent2); }
+  .btn-action.green { background: rgba(90,240,176,0.08); border-color: var(--success); color: var(--success); }
+  .btn-action.full { grid-column: 1 / -1; }
+  .error-msg { background: rgba(240,90,126,0.1); border: 1px solid rgba(240,90,126,0.3); border-radius: 10px; padding: 12px; font-size: 11px; color: var(--danger); display: none; margin-bottom: 12px; }
+  .error-msg.visible { display: block; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 9px 16px; font-size: 11px; color: var(--text); transition: transform 0.3s ease; z-index: 100; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--border); display: flex; z-index: 50; }
+  .nav-btn { flex: 1; padding: 12px 8px 16px; text-align: center; cursor: pointer; font-size: 9px; color: var(--muted); font-family: 'Syne', sans-serif; transition: color 0.2s; }
+  .nav-btn.active { color: var(--accent); }
+  .nav-icon { font-size: 18px; display: block; margin-bottom: 2px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .tracker-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .tracker-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 16px; }
+  .tracker-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+  .stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 8px; text-align: center; }
+  .stat-num { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; color: var(--accent); }
+  .stat-label { font-size: 9px; color: var(--muted); margin-top: 2px; }
+  .empty-tracker { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 12px; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
 
+<nav class="bottom-nav">
+  <div class="nav-btn active" id="nav-tailor" onclick="showScreen('tailor')"><span class="nav-icon">✦</span>Tailor</div>
+  <div class="nav-btn" id="nav-tracker" onclick="showScreen('tracker')"><span class="nav-icon">📊</span>Tracker</div>
+</nav>
+
+<div class="screen active" id="screen-tailor">
+<div class="container">
+  <div class="header">
+    <div class="logo">Resume<span>AI</span></div>
+    <div class="tagline">Kaushik's Personal Tailor · v3.0</div>
+  </div>
+
+  <div class="steps">
+    <div class="step active" id="s1">1</div>
+    <div class="step-line" id="l1"></div>
+    <div class="step" id="s2">2</div>
+    <div class="step-line" id="l2"></div>
+    <div class="step" id="s3">3</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">01 — Job Description</div>
+    <div class="input-row"><input type="text" id="jobTitle" placeholder="Job title (e.g. Project Coordinator)" oninput="checkJD()"></div>
+    <div class="input-row"><input type="text" id="companyName" placeholder="Company name" oninput="checkJD()"></div>
+    <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+      <div class="upload-icon">📄</div>
+      <div class="upload-text"><strong>Tap to upload JD</strong><br>PDF or TXT file</div>
+    </div>
+    <input type="file" id="fileInput" accept=".pdf,.txt" onchange="handleFile(event)">
+    <div class="file-indicator" id="fileIndicator">
+      <span>📎</span><span id="fileName"></span>
+      <span class="file-remove" onclick="removeFile()">✕</span>
+    </div>
+    <div class="or-divider">— OR PASTE BELOW —</div>
+    <textarea id="jdText" placeholder="Paste the full job description here..." oninput="checkJD()"></textarea>
+    <div class="special-input">
+      <input type="text" id="specialInstructions" placeholder="💬 Special instructions (optional)">
+    </div>
+  </div>
+
+  <div class="warning-banner" id="seniorityWarning">⚠️ <strong>Seniority Mismatch:</strong> This role may require more experience than your profile shows. Review carefully before applying.</div>
+  <div class="warning-banner" id="salaryWarning">⚠️ <strong>Salary Alert:</strong> This role may be below your $55K target. Check compensation before tailoring.</div>
+  <div class="referral-banner" id="referralBanner">🔔 <strong>You have a contact here!</strong> Request a referral before applying — it dramatically increases your chances.</div>
+  <div class="error-msg" id="errorMsg"></div>
+
+  <button class="btn-generate" id="generateBtn" onclick="generate()">✦ Tailor My Resume</button>
+
+  <div class="card loading-card" id="loadingCard">
+    <div class="spinner"></div>
+    <div style="font-size:13px; font-family:'Syne',sans-serif; font-weight:700; color:var(--text)">Building your resume...</div>
+    <ul class="loading-steps">
+      <li id="ls1"><span class="dot"></span>Phase 1: Experience + Location Gates</li>
+      <li id="ls2"><span class="dot"></span>Phase 2: 5-Point Audit</li>
+      <li id="ls3"><span class="dot"></span>Phase 3: Content Rotation</li>
+      <li id="ls4"><span class="dot"></span>Phase 4: Alumni Bridge Analysis</li>
+      <li id="ls5"><span class="dot"></span>Phase 5: LaTeX Generation</li>
+      <li id="ls6"><span class="dot"></span>Phase 6 & 7: Outreach + Salary</li>
+    </ul>
+  </div>
+
+  <div class="card result-card" id="resultCard">
+    <div class="result-header">
+      <div class="result-badges">
+        <div class="result-badge">✓ TAILORED</div>
+        <div class="variant-pill" id="variantPill">—</div>
+        <div class="pages-pill" id="pagesPill">—</div>
+      </div>
+      <div class="score-pill" id="fitScore">— / 10</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('latex',this)">LaTeX</div>
+      <div class="tab" onclick="switchTab('cover',this)">Cover Letter</div>
+      <div class="tab" onclick="switchTab('keywords',this)">Keywords</div>
+      <div class="tab" onclick="switchTab('changes',this)">Changes</div>
+      <div class="tab" onclick="switchTab('intel',this)">🧠 Intel</div>
+      <div class="tab" onclick="switchTab('outreach',this)">📨 Outreach</div>
+      <div class="tab" onclick="switchTab('salary',this)">💰 Salary</div>
+      <div class="tab" onclick="switchTab('checklist',this)">✓ Checklist</div>
+    </div>
+
+    <div id="tab-latex">
+      <div class="latex-output" id="latexOutput"></div>
+    </div>
+
+    <div id="tab-cover" style="display:none">
+      <div class="cl-preview" id="coverLetterText"></div>
+      <div style="margin-top:10px">
+        <button class="btn-action amber full" onclick="copyFollowUp()">✉️ Generate Follow-up Email</button>
+        <div class="cl-preview" id="followUpText" style="display:none; margin-top:8px"></div>
+      </div>
+    </div>
+
+    <div id="tab-keywords" style="display:none">
+      <div style="font-size:10px; color:var(--muted); margin-bottom:6px; letter-spacing:1px">MATCHED</div>
+      <div class="kw-grid" id="kwMatched"></div>
+      <div style="font-size:10px; color:var(--muted); margin:10px 0 6px; letter-spacing:1px">MISSING — ADD MANUALLY</div>
+      <div class="kw-grid" id="kwMissing"></div>
+    </div>
+
+    <div id="tab-changes" style="display:none">
+      <ul class="changes-list" id="changesList"></ul>
+    </div>
+
+    <div id="tab-intel" style="display:none">
+      <div class="intel-section">
+        <div class="intel-title">👔 6-Second Hiring Manager Scan</div>
+        <div class="intel-content" id="intel-hm"></div>
+      </div>
+      <div class="intel-section">
+        <div class="intel-title">📊 Top 5 Skills Gap Scorer</div>
+        <div id="intel-skills-bars"></div>
+      </div>
+      <div class="intel-section">
+        <div class="intel-title">💬 Impact Quantification</div>
+        <div class="intel-content" id="intel-impact"></div>
+      </div>
+      <div class="intel-section">
+        <div class="intel-title">🤖 AI Language Detector</div>
+        <div class="intel-content" id="intel-language"></div>
+      </div>
+      <div class="intel-section">
+        <div class="intel-title">⚙️ ATS Parser Check</div>
+        <div class="intel-content" id="intel-ats"></div>
+      </div>
+    </div>
+
+    <div id="tab-outreach" style="display:none">
+      <div class="intel-section">
+        <div class="intel-title">🔗 Alumni Bridge Analysis</div>
+        <div class="intel-content" id="outreach-bridge"></div>
+      </div>
+      <div class="intel-section">
+        <div class="intel-title">💬 LinkedIn Recruiter Message</div>
+        <div class="cl-preview" id="outreach-recruiter"></div>
+      </div>
+      <div class="intel-section">
+        <div class="intel-title">🤝 Referral Ask Message</div>
+        <div class="cl-preview" id="outreach-referral"></div>
+      </div>
+    </div>
+
+    <div id="tab-salary" style="display:none">
+      <div class="intel-content" id="salary-content"></div>
+    </div>
+
+    <div id="tab-checklist" style="display:none">
+      <ul class="checklist" id="applyChecklist">
+        <li onclick="toggleCheck(this)"><span class="check-box"></span>Run 7-phase protocol against JD ✓</li>
+        <li onclick="toggleCheck(this)"><span class="check-box"></span>Check Alumni Bridge tab for referral contacts</li>
+        <li onclick="toggleCheck(this)"><span class="check-box"></span>Send LinkedIn recruiter message (Outreach tab)</li>
+        <li onclick="toggleCheck(this)"><span class="check-box"></span>Tailor LinkedIn headline to match job title</li>
+        <li onclick="toggleCheck(this)"><span class="check-box"></span>Customize cover letter opening line for this company</li>
+        <li onclick="toggleCheck(this)"><span class="check-box"></span>Save PDF — filename: Kaushik_Meda_[Company].pdf</li>
+        <li onclick="toggleCheck(this)"><span class="check-box"></span>Enter $72,000 (or salary tab guidance) in Desired Pay field</li>
+        <li onclick="toggleCheck(this)"><span class="check-box"></span>Submit application on company careers page</li>
+        <li onclick="toggleCheck(this)"><span class="check-box"></span>Log application in tracker</li>
+        <li onclick="toggleCheck(this)"><span class="check-box"></span>Set follow-up reminder for 7 days</li>
+      </ul>
+    </div>
+
+    <div class="actions">
+      <button class="btn-action primary" onclick="generatePDF()">🖨️ Download PDF</button>
+      <button class="btn-action amber" onclick="copyLetter()">✉️ Copy Letter</button>
+      <button class="btn-action" onclick="copyLatex()">📋 Copy LaTeX</button>
+      <button class="btn-action green" onclick="openLinkedIn()">🔗 LinkedIn Jobs</button>
+      <button class="btn-action full" onclick="logAndReset()">✓ Log & Start New</button>
+    </div>
+    <div style="font-size:10px; color:var(--muted); text-align:center; margin-top:8px">Print dialog: set <strong style="color:var(--text)">Margins → None</strong> · uncheck <strong style="color:var(--text)">Headers & Footers</strong></div>
+  </div>
+</div>
+</div>
+
+<div class="screen" id="screen-tracker">
+<div class="container">
+  <div style="height:20px"></div>
+  <div class="tracker-header">
+    <div class="tracker-title">Application Tracker</div>
+    <button class="btn-action" onclick="exportCSV()" style="padding:7px 12px; font-size:10px">⬇ Export</button>
+  </div>
+  <div class="tracker-stats">
+    <div class="stat-box"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div>
+    <div class="stat-box"><div class="stat-num" id="stat-applied" style="color:var(--accent2)">0</div><div class="stat-label">Applied</div></div>
+    <div class="stat-box"><div class="stat-num" id="stat-interview" style="color:var(--success)">0</div><div class="stat-label">Interview</div></div>
+    <div class="stat-box"><div class="stat-num" id="stat-rejected" style="color:var(--danger)">0</div><div class="stat-label">Rejected</div></div>
+  </div>
+  <div class="card" id="trackerList">
+    <div class="empty-tracker" id="emptyTracker">📭 No applications yet.<br>Tailor a resume to start tracking.</div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const WORKER_URL = 'https://worker.ramasaikaushik-meda.workers.dev';
+
+const REFERRAL_COMPANIES = [
+  'amd','synergy','mnp','kal tire','computershare','td','td bank','wipro',
+  'ensemble','home hardware','cn rail','green shield','canada life','citibank',
+  'synechron','adp','rogers','rbc','walmart','walmart canada',
+  'bgis','black mcdonald','black & mcdonald','paladin','convergint','ellisdon',
+  'adga','calian','cgi','mda','l3harris','ibm'
+];
+
+// ─── MASTER RESUME DATA v3.0 ───────────────────────────────
+const RESUME_DATA = {
+  name: "Rama Sai Kaushik Meda",
+  shortName: "Kaushik Meda",
+  email: "ramasaikaushik.meda@gmail.com",
+  phone: "(226) 961-2408",
+  linkedin: "linkedin.com/in/kaushikmeda",
+  location_ottawa: "Ottawa, ON",
+  location_gta: "Mississauga, ON",
+  location_calgary: "Calgary, AB",
+  pr_status: "Canadian PR — No Sponsorship Required",
+  clearance: "Eligible for Secret (Level II) Security Clearance",
+
+  certifications: [
+    "CAPM® — PMI, Feb 2026 | ID: 4306365",
+    "PSM I — Scrum.org, Apr 2026 | ID: 1314830",
+    "Microsoft Azure Fundamentals (AZ-900) — Microsoft, 2026",
+    "Procore Certified: Project Manager — Procore Technologies, 2026",
+    "Oracle Primavera P6 Professional — Oracle MyLearn, 2026",
+    "Microsoft Excel 365 Advanced (97%) — GoSkills CPD, 2026 | Verification: 10339493",
+    "Certified RPA Engineer — Automation Anywhere University, 2020"
+  ],
+
+  summary_base: "CAPM® and PSM I-certified Project Coordinator with a proven record coordinating ELV infrastructure, physical security, IT, and construction projects through full lifecycle. Currently managing a $2M+ project portfolio of 5–8 concurrent engagements at a 92% on-time delivery rate while reconciling $80K+ in monthly vendor invoices across 10+ supplier relationships. Tracks project financial health using EAC and BCWP analysis; produces RAG status reports and Power BI dashboards for executive stakeholders. Holds AZ-900, Procore, and Oracle Primavera P6 credentials — Canadian Permanent Resident, available anywhere in Canada.",
+
+  experience: [
+    {
+      title: "Project Coordinator",
+      company: "MBR Technologies Inc.",
+      location: "Kitchener, ON",
+      dates: "Feb 2025 – Present",
+      type: "full",
+      bullets: [
+        "Coordinated a $2M+ portfolio of 5–8 concurrent ELV and physical security projects — IP CCTV deployments, Aruba networking rollouts, structured cabling, and access control installations — using MS Project and Jira; maintained 92% on-time delivery rate across all active engagements.",
+        "Built and maintained a Power BI portfolio health dashboard drawing from MS Project schedule data, Jira task tracking, and vendor invoice streams; updated weekly and reviewed by the executive team every Monday to drive resource allocation decisions.",
+        "Tracked project financial health using EAC and BCWP analysis; reconciled 45+ monthly vendor invoices totalling $80K+ through 3-way matching — reducing vendor payment delays by 20% and identifying billing discrepancies that saved 5% in annual procurement costs.",
+        "Led smart building integration for a $450K–$500K hospitality project, coordinating simultaneous Access Control, GRMS, and AV system deployments with Aruba zero-touch provisioning across 3 commercial sites; maintained zero critical path delays.",
+        "Maintained RAID logs across 10+ vendor relationships; translated technical milestone data into weekly RAG status reports for executive stakeholders, reducing escalation frequency and accelerating go/no-go decisions.",
+        "Facilitated weekly cross-functional governance meetings with site supervisors and OEM vendors; prepared agendas, recorded minutes, and tracked action items — maintaining 95%+ action item closure rate within agreed timelines.",
+        "Managed full project documentation lifecycle — fiber optic test reports, technical drawings, security approvals, compliance permits — in SharePoint and MS Teams, maintaining audit-ready records through closeout."
+      ]
+    },
+    {
+      title: "Associate System Engineer | Agile Delivery & Automation",
+      company: "Tata Consultancy Services",
+      location: "India",
+      dates: "Oct 2020 – Jul 2021",
+      type: "full",
+      bullets: [
+        "Coordinated IT project scheduling for Schneider Electric's EcoStruxure Foxboro DCS industrial control system across 3+ sprint cycles using Agile/Scrum and Waterfall; facilitated stand-ups, sprint planning, backlog grooming, and retrospectives for a cross-functional team of 12+.",
+        "Managed I/O tag verification and database mapping for the Foxboro DCS — ensuring thousands of system tags accurately reflected physical sensor signals across technical documentation and the live control system database.",
+        "Coordinated pre-commissioning phase, testing software control logic against simulated plant conditions; authored technical documentation for 5+ Fieldbus Modules (FBM), enabling audit-ready knowledge transfer across QA and support teams.",
+        "Identified a manual reporting bottleneck and led an automation initiative reducing the engineering team's tracking effort by 30%; supported UAT coordination and RPA deployment maintaining delivery continuity across QA teams."
+      ]
+    },
+    {
+      title: "Project Support Assistant (Part-time)",
+      company: "PR Realty & Design House",
+      location: "India (Remote)",
+      dates: "Jun 2020 – Aug 2021",
+      type: "part",
+      bullets: [
+        "Coordinated 8+ concurrent remote construction and real estate projects — maintained billing logs, project trackers, and budget records while managing contractor scheduling and resource allocation across all active sites.",
+        "Reconciled invoices and performed budget tracking across the full portfolio; identified billing discrepancies and escalated variances to project leads before they affected contractor payment timelines.",
+        "Monitored milestone progress across all 8+ active engagements; identified schedule delays early and communicated status updates — supporting on-time delivery across the entire portfolio with zero missed handover deadlines.",
+        "Prepared and maintained project correspondence, SOW documentation, contract records, and compliance files — ensuring audit-ready documentation packages accessible throughout each project lifecycle.",
+        "Coordinated scope change tracking — logged timeline adjustments, revised contract terms, and updated budget records to ensure all project leads had current status at all times."
+      ]
+    },
+    {
+      title: "Operations & Team Coordinator (Part-time)",
+      company: "Walmart Canada",
+      location: "Ontario",
+      dates: "Jun 2023 – Jan 2025",
+      type: "part",
+      bullets: [
+        "Led an Operational Standardization & Digital Workflow Rollout — used Root Cause Analysis to identify knowledge gaps as the primary SLA variance driver; coordinated a month-long process improvement initiative achieving and sustaining 99% order accuracy across all departments.",
+        "Authored SOPs for all technical fulfillment workflows; standardized onboarding for 75+ associates on digital platforms (SMART, MyGuide), maintaining 100% audit readiness throughout peak volume periods.",
+        "Implemented a real-time QA tracking system modelled on UAT principles; met all SLA targets during peak hiring volume, proving the standardized workflow scalable across departments."
+      ]
+    },
+    {
+      title: "Electrical Engineering Intern",
+      company: "Bharat Heavy Electricals Limited (BHEL)",
+      location: "Hyderabad, India",
+      dates: "May 2018 – Sep 2018",
+      type: "intern",
+      bullets: [
+        "Supported PLC-based industrial control system installations within the Electronics & Automation Division; assisted with I/O mapping and point-to-point wiring verification — ensuring field sensor signals correctly integrated with the central control logic.",
+        "Tracked commissioning milestones daily and flagged hardware delivery delays to the senior project lead; maintained as-built redline documentation for audit-ready client handover."
+      ]
+    }
+  ],
+
+  notable_projects: [
+    {
+      name: "Smart Classroom — Automated Attendance System",
+      role: "Project Coordinator",
+      dates: "B.Tech Final Year Project, BVRIT | 2019–2020",
+      desc: "Co-authored published paper: IJARIIT Vol. 6, Issue 2, 2020. Coordinated hardware procurement, team milestones, and technical documentation for an RFID-based attendance prototype across a cross-functional team of 4."
+    },
+    {
+      name: "IoT-Based Safety Monitoring System",
+      role: "Project Coordinator",
+      dates: "B.Tech Project, BVRIT | Jan 2020 – Mar 2020",
+      desc: "Coordinated a cross-functional team of 6 through full design and delivery; managed vendor integration, tracked deliverables against a 3-month schedule, and produced stakeholder reports using Power BI dashboards."
+    }
+  ],
+
+  education: [
+    { degree: "Master of Engineering (M.Eng.), Electrical & Computer Engineering", school: "University of Ottawa, Canada", dates: "2021 – 2023" },
+    { degree: "Bachelor of Technology (B.Tech.), Electronics & Communication Engineering", school: "BV Raju Institute of Technology, India", dates: "2016 – 2020" }
+  ],
+
+  achievements: [
+    "Class Representative, BVRIT (2016–2020): Liaison between faculty and 60+ students, coordinating logistics across departments for four years.",
+    "IoT Workshop Organizer, IIT Bombay collaboration (2018): Coordinated a technical workshop for student cohorts.",
+    "DST & Texas Instruments Award Recipient: National-level competition anchored by IIM Bangalore."
+  ],
+
+  skills: {
+    pm: "CAPM®, PSM I, Agile/Scrum, Waterfall, Hybrid, Full Project Lifecycle, RAID Log Management, PMO Support & Reporting, Earned Value Management (EAC/BCWP), Contingency Planning, Risk Mitigation, Sprint Planning, Backlog Management, UAT Support",
+    financial: "Budget Tracking & Variance Analysis, Financial Forecasting & Reconciliation, EAC Reporting, KPI Reporting, SOW Administration, Vendor & Procurement Coordination, Contract Administration, RFI & Submittal Tracking, Change Orders, Subcontractor Management, 3-Way Invoice Matching, Cash Flow Analysis",
+    technical: "ELV Systems (IP CCTV, Access Control, Structured Cabling, Fiber Optics), Physical Security Coordination, Facility Management, Aruba Networking, Smart Building Integration (GRMS, AV), IT Infrastructure, Construction Coordination, Health & Safety Compliance, Foxboro DCS (EcoStruxure), PLC Systems, Industrial Automation",
+    tools: "MS Project, Primavera P6, Procore, Bluebeam, Jira, Asana, Monday.com, Trello, Confluence, SharePoint, Microsoft Teams, Microsoft 365, Power BI, Excel (Advanced), MS Visio, Microsoft Azure (AZ-900), QuickBooks, Workfront"
+  },
+
+  // 7-phase protocol context
+  referral_network: ["AMD","Synergy Credit Union","MNP Consulting","Kal Tire","Computershare","TD Bank","Wipro","Ensemble","Home Hardware","CN Rail","Green Shield Canada","Canada Life","Citibank","Synechron","ADP","Rogers","RBC"],
+  alumni_bridges: ["University of Ottawa (M.Eng 2021-2023)", "Tata Consultancy Services (Oct 2020 - Jul 2021)", "BVRIT Alumni Network"],
+  shared_tech_stack: ["MS Project","Jira","Procore","Primavera P6","Power BI","SharePoint","Azure","Aruba","Foxboro DCS"]
+};
+
+let uploadedFileText = '';
+let resultData = null;
+let currentJobTitle = '';
+let currentCompany = '';
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'tracker') renderTracker();
+}
+
+function checkJD() {
+  const company = document.getElementById('companyName').value.toLowerCase();
+  const jd = document.getElementById('jdText').value.toLowerCase();
+  const title = document.getElementById('jobTitle').value.toLowerCase();
+  const hasReferral = REFERRAL_COMPANIES.some(c => company.includes(c));
+  document.getElementById('referralBanner').classList.toggle('visible', hasReferral);
+  const seniorWords = ['senior', 'sr.', '5+ years', '7+ years', '8+ years', 'lead ', 'manager', 'director'];
+  const isSenior = seniorWords.some(w => jd.includes(w) || title.includes(w));
+  document.getElementById('seniorityWarning').classList.toggle('visible', isSenior);
+  const salaryMatch = jd.match(/\$(\d{2,3}),?(\d{3})?/g);
+  if (salaryMatch) {
+    const amounts = salaryMatch.map(s => parseInt(s.replace(/[$,]/g,'')));
+    const maxSalary = Math.max(...amounts);
+    document.getElementById('salaryWarning').classList.toggle('visible', maxSalary > 0 && maxSalary < 50000);
+  }
+}
+
+function detectLocation(jd) {
+  const text = jd.toLowerCase();
+  if (text.includes('calgary') || text.includes('edmonton') || text.includes('alberta')) return RESUME_DATA.location_calgary;
+  if (text.includes('toronto') || text.includes('gta') || text.includes('mississauga') || text.includes('brampton') || text.includes('vaughan') || text.includes('markham')) return RESUME_DATA.location_gta;
+  return RESUME_DATA.location_ottawa;
+}
+
+async function handleFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileIndicator').classList.add('visible');
+  if (file.type === 'text/plain') {
+    uploadedFileText = await file.text();
+  } else {
+    showToast('PDF uploaded — text will be extracted by AI');
+    uploadedFileText = '[PDF FILE UPLOADED: ' + file.name + ']';
+  }
+}
+
+function removeFile() {
+  uploadedFileText = '';
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileIndicator').classList.remove('visible');
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['latex','cover','keywords','changes','intel','outreach','salary','checklist'].forEach(t => {
+    const el = document.getElementById('tab-' + t);
+    if (el) el.style.display = t === name ? 'block' : 'none';
+  });
+}
+
+function setStep(n) {
+  for (let i = 1; i <= 3; i++) {
+    const s = document.getElementById('s' + i);
+    if (i < n) { s.className = 'step done'; s.textContent = '✓'; }
+    else if (i === n) { s.className = 'step active'; s.textContent = i; }
+    else { s.className = 'step'; s.textContent = i; }
+    if (i < 3) document.getElementById('l' + i).className = 'step-line' + (i < n ? ' done' : '');
+  }
+}
+
+let loadingInterval;
+function animateLoading() {
+  const steps = ['ls1','ls2','ls3','ls4','ls5','ls6'];
+  let i = 0;
+  loadingInterval = setInterval(() => {
+    if (i > 0) document.getElementById(steps[i-1]).className = 'done';
+    if (i < steps.length) { document.getElementById(steps[i]).className = 'active'; i++; }
+  }, 2500);
+}
+function stopLoading() {
+  clearInterval(loadingInterval);
+  ['ls1','ls2','ls3','ls4','ls5','ls6'].forEach(id => document.getElementById(id).className = 'done');
+}
+
+function toggleCheck(li) { li.classList.toggle('checked'); }
+
+async function generate() {
+  const jdText = document.getElementById('jdText').value.trim();
+  const jobTitle = document.getElementById('jobTitle').value.trim();
+  const company = document.getElementById('companyName').value.trim();
+  const special = document.getElementById('specialInstructions').value.trim();
+  const errorEl = document.getElementById('errorMsg');
+  errorEl.classList.remove('visible');
+
+  const jdContent = uploadedFileText || jdText;
+  if (!jdContent && !jobTitle) {
+    errorEl.textContent = 'Please paste a job description or fill in the job title.';
+    errorEl.classList.add('visible');
+    return;
+  }
+
+  currentJobTitle = jobTitle;
+  currentCompany = company;
+
+  setStep(2);
+  document.getElementById('generateBtn').disabled = true;
+  document.getElementById('loadingCard').classList.add('visible');
+  document.getElementById('resultCard').classList.remove('visible');
+  animateLoading();
+
+  const detectedLocation = detectLocation(jdContent + ' ' + jobTitle + ' ' + company);
+  const jdLower = (jdContent + ' ' + jobTitle + ' ' + company).toLowerCase();
+
+  // Phase 1 — Experience Gate
+  const yearsMatch = jdLower.match(/(\d+)\+?\s*years?/);
+  const requiredYears = yearsMatch ? parseInt(yearsMatch[1]) : 0;
+  const experienceClaim = requiredYears >= 4 ? "4+ years of experience" : "proven record";
+
+  // Phase 1 — Location Gate + Gov detection
+  const isGovRole = jdLower.includes('government') || jdLower.includes('dnd') || jdLower.includes('treasury board') || jdLower.includes('secret') || jdLower.includes('clearance') || jdLower.includes('federal') || jdLower.includes('defence') || jdLower.includes('defense') || jdLower.includes('adga') || jdLower.includes('calian') || jdLower.includes('cgi') || jdLower.includes('public service');
+
+  // ALL bullets — no trimming
+  const expText = RESUME_DATA.experience.map(e =>
+    `${e.title} at ${e.company}, ${e.location} (${e.dates}):\n${e.bullets.map(b => '• ' + b).join('\n')}`
+  ).join('\n\n');
+
+  const candidateBlock = `CANDIDATE: Kaushik Meda | ${detectedLocation} | Canadian PR ${isGovRole ? '| Eligible Secret Level II Clearance' : ''}
+CERTS: ${RESUME_DATA.certifications.join(' | ')}
+SUMMARY: ${RESUME_DATA.summary_base}
+EXPERIENCE:\n${expText}
+SKILLS — PM: ${RESUME_DATA.skills.pm}
+SKILLS — Financial: ${RESUME_DATA.skills.financial}
+SKILLS — Technical: ${RESUME_DATA.skills.technical}
+SKILLS — Tools: ${RESUME_DATA.skills.tools}
+EDUCATION: ${RESUME_DATA.education.map(e=>`${e.degree} — ${e.school} (${e.dates})`).join(' | ')}
+PROJECTS: ${RESUME_DATA.notable_projects.map(p=>`${p.name} (${p.dates}): ${p.desc}`).join(' | ')}`;
+
+  const jobBlock = `JOB: ${jobTitle||'Project Coordinator'} at ${company||'Target Company'}
+JD: ${jdContent||jobTitle}
+SPECIAL: ${special||'None'}
+EXPERIENCE GATE: use "${experienceClaim}"
+CONTENT ROTATION: ${jdLower.includes('agile')||jdLower.includes('scrum')||jdLower.includes('sprint') ? 'Lead with PSM I + TCS Foxboro DCS' : jdLower.includes('construct')||jdLower.includes('elv')||jdLower.includes('facilit') ? 'Lead with MBR + Procore/P6' : jdLower.includes('government')||jdLower.includes('dnd') ? 'Add RoD, Treasury Board, V&V language' : jdLower.includes('finance')||jdLower.includes('pmo') ? 'Lead with EAC/BCWP, KPI, budget' : 'Standard MBR-first order'}
+PAGE COUNT: ${special.toLowerCase().includes('1 page') ? '1' : '2'} (2=all 5 roles+projects; 1=top 3 roles only)`;
+
+  // ── CALL 1: Resume content (phases 1–5) ──────────────────
+  const prompt1 = `You are an expert Canadian resume writer. Tailor this resume for the job.
+
+${candidateBlock}
+
+${jobBlock}
+
+RULES: Keep all real metrics ($2M+, 92%, $80K+, 45+, 10+, 95%, 99%, 75+, 30%). Use active verbs: led, managed, built, reduced, delivered, coordinated, tracked, resolved. NEVER use: leveraged, utilized, spearheaded, passionate, results-driven, synergy, proactively, dynamic, impactful.
+
+Respond ONLY with valid JSON, no markdown fences:
+{"variant":"general","page_count":2,"page_reason":"reason","fit_score":8,"is_gov_role":false,"tailored_summary":"...","tailored_experience":[{"title":"...","company":"...","location":"...","dates":"...","include":true,"bullets":["b1","b2","b3","b4","b5"]}],"include_projects":true,"matched_keywords":["k1","k2","k3","k4","k5","k6"],"missing_keywords":["k1","k2","k3"],"changes":["c1","c2","c3","c4"],"cover_letter":"Dear Hiring Manager,\\n\\npara1\\n\\npara2\\n\\npara3\\n\\nSincerely,\\nKaushik Meda"}`;
+
+  try {
+    const r1 = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 8000, messages: [{ role: 'user', content: prompt1 }] })
+    });
+    if (!r1.ok) throw new Error(`API error ${r1.status} — check Worker logs`);
+    const d1 = await r1.json();
+    if (d1.error) throw new Error(`API: ${d1.error.message || JSON.stringify(d1.error)}`);
+    const raw1 = d1.content?.[0]?.text || '';
+
+    let parsed1;
+    try {
+      const clean1 = raw1.replace(/```json|```/g, '').trim();
+      parsed1 = JSON.parse(clean1.substring(clean1.indexOf('{'), clean1.lastIndexOf('}')+1));
+    } catch(e) {
+      console.error('Call 1 parse error:', e, raw1.substring(0,300));
+      throw new Error('Resume generation failed. Please try again.');
+    }
+
+    // Show results immediately after call 1
+    stopLoading();
+    resultData = { ...parsed1, detected_location: detectedLocation, job_title: jobTitle, company, is_gov_role: isGovRole };
+    renderResults(resultData);
+    setStep(3);
+
+    // ── CALL 2: Intelligence (phases 2, 4, 6, 7) — background ──
+    setIntelLoading(true);
+    const prompt2 = `You are a senior Canadian hiring consultant. Run intelligence checks on this tailored resume vs the job.
+
+${candidateBlock}
+
+JOB: ${jobTitle||'Project Coordinator'} at ${company||'Target Company'}
+JD: ${jdContent||jobTitle}
+
+NETWORK BRIDGES: University of Ottawa alumni, TCS alumni network, referral contacts at: ${RESUME_DATA.referral_network.join(', ')}
+SHARED TECH: ${RESUME_DATA.shared_tech_stack.join(', ')}
+
+Run these checks and respond ONLY with valid JSON, no markdown:
+{
+"hiring_manager":"1. [first thing noticed]\\n2. [second]\\n3. [third]\\nGAPS:\\n- [gap1 specific to JD]\\n- [gap2 specific to JD]",
+"skills_scores":[{"skill":"[top JD skill 1]","score":8,"note":"evidence note"},{"skill":"[top JD skill 2]","score":7,"note":"evidence note"},{"skill":"[top JD skill 3]","score":8,"note":"evidence note"},{"skill":"[top JD skill 4]","score":7,"note":"evidence note"},{"skill":"[top JD skill 5]","score":6,"note":"evidence note"}],
+"impact_questions":"Bullet: [quote weakest bullet]\\nQ: [one specific question to add a metric]\\n\\nBullet: [second weakest]\\nQ: [specific question]",
+"language_check":"[any AI words found and replacements, or: No AI language issues found]",
+"ats_check":"[ATS issues or: Single column OK. Standard headers OK. No tables. ATS-safe.]",
+"outreach_bridge":"[specific alumni/network connection found, or: No direct bridge found — cold outreach recommended]",
+"outreach_recruiter":"Hi [Name],\\n\\n[3-4 sentences referencing role, specific match, Canadian PR${isGovRole?', clearance':''}, call to action]\\n\\nThank you,\\nKaushik Meda",
+"outreach_referral":"Hi [Name],\\n\\n[personalized referral ask if company in referral network, otherwise warm cold outreach]\\n\\nThank you,\\nKaushik Meda",
+"salary_range":"$XX,000 – $XX,000 CAD",
+"salary_desired_pay":"$XX,000",
+"salary_note":"[brief negotiation advice specific to company type and city]"
+}`;
+
+    try {
+      const r2 = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 3000, messages: [{ role: 'user', content: prompt2 }] })
+      });
+      if (!r2.ok) throw new Error(`Call 2 API error ${r2.status}`);
+      const d2 = await r2.json();
+      if (d2.error) throw new Error(`Call 2: ${d2.error.message}`);
+      const raw2 = d2.content?.[0]?.text || '';
+
+      let parsed2;
+      try {
+        const clean2 = raw2.replace(/```json|```/g, '').trim();
+        parsed2 = JSON.parse(clean2.substring(clean2.indexOf('{'), clean2.lastIndexOf('}')+1));
+      } catch(e) {
+        console.error('Call 2 parse error:', e, raw2.substring(0,300));
+        parsed2 = { hiring_manager: 'Intelligence check failed — retry by refreshing.', skills_scores: [], outreach_bridge: '—', outreach_recruiter: '—', outreach_referral: '—', salary_range: '—', salary_desired_pay: '$72,000', salary_note: '—' };
+      }
+
+      // Merge intel into resultData and update tabs
+      Object.assign(resultData, parsed2);
+      renderIntel(parsed2);
+
+    } catch(e) {
+      console.error('Call 2 fetch error:', e);
+      renderIntel({ hiring_manager: 'Intelligence check unavailable — check your connection.', skills_scores: [], outreach_bridge: '—', outreach_recruiter: '—', outreach_referral: '—', salary_range: '—', salary_desired_pay: '$72,000', salary_note: '—' });
+    }
+
+    setIntelLoading(false);
+
+  } catch(err) {
+    stopLoading();
+    document.getElementById('loadingCard').classList.remove('visible');
+    document.getElementById('generateBtn').disabled = false;
+    errorEl.textContent = err.message || 'Something went wrong. Please try again.';
+    errorEl.classList.add('visible');
+    setStep(1);
+  }
+}
+
+function setIntelLoading(on) {
+  const tabs = ['intel-hm','intel-impact','intel-language','intel-ats','intel-skills-bars','outreach-bridge','outreach-recruiter','outreach-referral','salary-content'];
+  tabs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.opacity = on ? '0.4' : '1';
+  });
+  if (on) {
+    document.getElementById('intel-hm').textContent = '⏳ Running intelligence checks...';
+    document.getElementById('outreach-recruiter').textContent = '⏳ Drafting outreach messages...';
+    document.getElementById('salary-content').textContent = '⏳ Looking up salary data...';
+  }
+}
+
+function renderIntel(d) {
+  document.getElementById('intel-hm').textContent = d.hiring_manager || '—';
+  document.getElementById('intel-impact').textContent = d.impact_questions || '—';
+  document.getElementById('intel-language').textContent = d.language_check || '—';
+  document.getElementById('intel-ats').textContent = d.ats_check || '—';
+
+  const barsEl = document.getElementById('intel-skills-bars');
+  if (d.skills_scores && d.skills_scores.length) {
+    barsEl.innerHTML = d.skills_scores.map(s => {
+      const color = s.score >= 7 ? 'var(--success)' : s.score >= 5 ? 'var(--warning)' : 'var(--danger)';
+      return `<div class="skill-row"><div class="skill-name">${s.skill}</div><div class="skill-bar-wrap"><div class="skill-bar" style="width:${s.score*10}%; background:${color}"></div></div><div class="skill-score">${s.score}/10</div></div><div style="font-size:9px; color:var(--muted); margin-bottom:8px; padding-left:128px">${s.note}</div>`;
+    }).join('');
+  }
+
+  document.getElementById('outreach-bridge').textContent = d.outreach_bridge || '—';
+  document.getElementById('outreach-recruiter').textContent = d.outreach_recruiter || '—';
+  document.getElementById('outreach-referral').textContent = d.outreach_referral || '—';
+
+  document.getElementById('salary-content').textContent =
+    `Market Range: ${d.salary_range || '—'}\n\nDesired Pay Field: Enter ${d.salary_desired_pay || '$72,000'} (single number, not a range)\n\nNegotiation: ${d.salary_note || '—'}`;
+}
+
+function renderResults(d) {
+  document.getElementById('loadingCard').classList.remove('visible');
+  document.getElementById('generateBtn').disabled = false;
+
+  document.getElementById('fitScore').textContent = `${d.fit_score}/10`;
+  document.getElementById('variantPill').textContent = {
+    general: '📋 General', it_technology: '💻 IT/Tech',
+    finance: '📊 Finance', government: '🏛️ Gov',
+    construction: '🏗️ Construction', facility: '🏢 Facility'
+  }[d.variant] || d.variant;
+  document.getElementById('pagesPill').textContent = `${d.page_count}P`;
+
+  document.getElementById('latexOutput').textContent = buildLatex(d);
+  document.getElementById('coverLetterText').textContent = d.cover_letter || '';
+  document.getElementById('kwMatched').innerHTML = (d.matched_keywords || []).map(k => `<span class="kw-chip">${k}</span>`).join('');
+  document.getElementById('kwMissing').innerHTML = (d.missing_keywords || []).map(k => `<span class="kw-chip missing">${k}</span>`).join('');
+  document.getElementById('changesList').innerHTML = (d.changes || []).map(c => `<li><span class="change-icon">→</span>${c}</li>`).join('');
+
+  // Intel tabs show loading state until call 2 completes
+  setIntelLoading(true);
+
+  document.getElementById('resultCard').classList.add('visible');
+  setTimeout(() => document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth' }), 100);
+}
+
+function buildLatex(d) {
+  const exp = (d.tailored_experience || []).filter(e => e.include !== false);
+  const loc = d.detected_location || RESUME_DATA.location_ottawa;
+  const isGov = d.is_gov_role;
+
+  const expLatex = exp.map(e => {
+    const bullets = (e.bullets || []).map(b => `    \\item \\small ${b}`).join('\n');
+    return `\\job{${e.title}}{${e.company}, ${e.location}}{${e.dates}}\n\\begin{itemize}[leftmargin=0.18in, label={\\small\\color{CVBLUE}$\\bullet$}, itemsep=1pt, parsep=0pt, topsep=3pt]\n${bullets}\n\\end{itemize}`;
+  }).join('\n\n');
+
+  return `% ═══════════════════════════════════════════════
+% TAILORED: ${d.job_title || 'Project Coordinator'} @ ${d.company || 'Target Company'}
+% Variant: ${(d.variant||'').toUpperCase()} | Pages: ${d.page_count} | Fit: ${d.fit_score}/10
+% Location: ${loc} | Gate: ${d.experience_gate || ''}
+% Generated: ${new Date().toLocaleDateString('en-CA')} | v3.0
+% ═══════════════════════════════════════════════
+
+% ── HEADER (update address if needed) ──
+% ${loc} | ${isGov ? RESUME_DATA.clearance : RESUME_DATA.pr_status}
+
+% ── SUMMARY ──
+\\begin{justify}
+  \\small ${d.tailored_summary || ''}
+\\end{justify}
+
+% ── EXPERIENCE ──
+${expLatex}
+
+% ── MISSING KEYWORDS TO ADD ──
+% Consider adding to skills: ${(d.missing_keywords || []).join(', ')}`;
+}
+
+function generatePDF() {
+  if (!resultData) return;
+  const d = resultData;
+  const loc = d.detected_location || RESUME_DATA.location_ottawa;
+  const is2page = d.page_count === 2;
+  const isGov = d.is_gov_role;
+  const exp = (d.tailored_experience || []).filter(e => e.include !== false);
+
+  const expHTML = exp.map(e => {
+    const bullets = (e.bullets || []).map(b => `<li>${b}</li>`).join('');
+    return `<div class="exp-block"><div class="exp-header"><div><div class="exp-title">${e.title}</div><div class="exp-company">${e.company} — ${e.location}</div></div><div class="exp-dates">${e.dates}</div></div><ul class="exp-bullets">${bullets}</ul></div>`;
+  }).join('');
+
+  const projectsHTML = (is2page && d.include_projects) ? `<div class="section"><div class="section-title">Notable Projects</div>${RESUME_DATA.notable_projects.map(p => `<div class="exp-block"><div class="exp-header"><div><div class="exp-title">${p.name}</div><div class="exp-company">${p.dates}</div></div></div><p style="font-size:8.8pt; color:#2a2a2a; margin-top:3px; line-height:1.5">${p.desc}</p></div>`).join('')}</div>` : '';
+
+  const pdfHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${RESUME_DATA.shortName}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;font-size:9.5pt;color:#1a1a2e;background:#fff;}
+.page{width:8.5in;padding:${is2page?'0.4in 0.55in':'0.55in 0.6in'};}
+.header{border-bottom:2px solid #2d2b8a;padding-bottom:9px;margin-bottom:12px;}
+.name{font-family:'EB Garamond',serif;font-size:${is2page?'23pt':'26pt'};font-weight:600;color:#2d2b8a;letter-spacing:-0.5px;line-height:1;}
+.contact{display:flex;gap:12px;margin-top:6px;font-size:7.8pt;color:#444;flex-wrap:wrap;}
+.section{margin-bottom:${is2page?'10px':'13px'};}
+.section-title{font-size:7.8pt;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;color:#2d2b8a;border-bottom:1.5px solid #2d2b8a;padding-bottom:3px;margin-bottom:8px;}
+.summary{font-size:${is2page?'8.5pt':'9pt'};line-height:1.5;color:#2a2a2a;}
+.exp-block{margin-bottom:${is2page?'7px':'10px'};}
+.exp-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px;}
+.exp-title{font-weight:600;font-size:8.8pt;color:#1a1a2e;}
+.exp-company{font-size:8.3pt;color:#555;margin-top:1px;}
+.exp-dates{font-size:7.8pt;color:#777;white-space:nowrap;margin-left:8px;}
+.exp-bullets{padding-left:12px;margin-top:3px;}
+.exp-bullets li{font-size:${is2page?'8.3pt':'8.8pt'};line-height:${is2page?'1.35':'1.5'};color:#2a2a2a;margin-bottom:2px;}
+.exp-bullets li::marker{color:#2d2b8a;}
+.skills-text{font-size:8.3pt;line-height:1.6;color:#2a2a2a;}
+.edu-row{display:flex;justify-content:space-between;align-items:flex-start;font-size:8.5pt;margin-bottom:6px;}
+.edu-deg{font-weight:600;}
+.edu-school{color:#555;font-size:8pt;}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}@page{margin:0.4in 0.5in;size:letter;}.exp-block{page-break-inside:avoid;}.section{page-break-inside:avoid;}.section-title{page-break-after:avoid;}}
+</style></head><body><div class="page">
+<div class="header">
+<div class="name">${RESUME_DATA.shortName}</div>
+<div class="contact">
+<span>${RESUME_DATA.email}</span><span>${RESUME_DATA.phone}</span>
+<span>${RESUME_DATA.linkedin}</span><span>${loc}</span>
+<span>Open to Contract & Permanent</span>
+<span>${RESUME_DATA.pr_status}</span>
+${isGov ? `<span>${RESUME_DATA.clearance}</span>` : ''}
+</div></div>
+<div class="section"><div class="section-title">Professional Summary</div><div class="summary">${d.tailored_summary||''}</div></div>
+<div class="section"><div class="section-title">Professional Experience</div>${expHTML}</div>
+${projectsHTML}
+<div class="section"><div class="section-title">Skills & Competencies</div><div class="skills-text"><strong>PM & Controls:</strong> ${RESUME_DATA.skills.pm}<br><strong>Financial & Commercial:</strong> ${RESUME_DATA.skills.financial}<br><strong>Technical & Domain:</strong> ${RESUME_DATA.skills.technical}<br><strong>Tools & Platforms:</strong> ${RESUME_DATA.skills.tools}</div></div>
+<div class="section"><div class="section-title">Certifications</div><div style="font-size:8.3pt;line-height:1.8;color:#2a2a2a">${RESUME_DATA.certifications.map(c=>`<div>• ${c}</div>`).join('')}</div></div>
+<div class="section"><div class="section-title">Education</div>${RESUME_DATA.education.map(e=>`<div class="edu-row"><div><div class="edu-deg">${e.degree}</div><div class="edu-school">${e.school}</div></div><div style="color:#777;font-size:7.8pt;white-space:nowrap;margin-left:8px">${e.dates}</div></div>`).join('')}</div>
+${is2page?`<div class="section"><div class="section-title">Achievements & Volunteering</div><div style="font-size:8.3pt;line-height:1.7;color:#2a2a2a">${RESUME_DATA.achievements.map(a=>`<div style="margin-bottom:3px">• ${a}</div>`).join('')}</div></div>`:''}
+</div></body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(pdfHTML);
+  win.document.close();
+  win.addEventListener('load', () => setTimeout(() => win.print(), 500));
+  showToast('Print dialog → Margins: None · No Headers/Footers');
+}
+
+function copyLatex() { navigator.clipboard.writeText(document.getElementById('latexOutput').textContent).then(()=>showToast('LaTeX copied!')); }
+function copyLetter() { navigator.clipboard.writeText(document.getElementById('coverLetterText').textContent).then(()=>showToast('Cover letter copied!')); }
+function openLinkedIn() { window.open(`https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(currentJobTitle||'Project Coordinator')}&location=Canada`,'_blank'); }
+
+async function copyFollowUp() {
+  if (!resultData) return;
+  const btn = event.target;
+  btn.textContent = '⏳ Generating...';
+  btn.disabled = true;
+  try {
+    const res = await fetch(WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: `Write a short professional follow-up email (3-4 sentences) from Kaushik Meda following up on a job application for ${resultData.job_title} at ${resultData.company}. Applied approximately 7 days ago. Include Subject line. Sign off: Kaushik Meda | (226) 961-2408 | ramasaikaushik.meda@gmail.com. Plain text only.` }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    const el = document.getElementById('followUpText');
+    el.textContent = text;
+    el.style.display = 'block';
+    navigator.clipboard.writeText(text).then(()=>showToast('Follow-up email copied!'));
+  } catch(e) { showToast('Failed to generate follow-up'); }
+  btn.textContent = '✉️ Generate Follow-up Email';
+  btn.disabled = false;
+}
+
+function logAndReset() {
+  if (resultData) {
+    const apps = JSON.parse(localStorage.getItem('kaushik_apps')||'[]');
+    apps.unshift({ id: Date.now(), company: resultData.company||'Unknown', role: resultData.job_title||'Project Coordinator', variant: resultData.variant||'general', fit_score: resultData.fit_score||0, date: new Date().toLocaleDateString('en-CA'), status: 'to-apply' });
+    localStorage.setItem('kaushik_apps', JSON.stringify(apps));
+    showToast('Logged to tracker!');
+  }
+  document.getElementById('jdText').value=''; document.getElementById('jobTitle').value=''; document.getElementById('companyName').value=''; document.getElementById('specialInstructions').value='';
+  document.getElementById('resultCard').classList.remove('visible'); document.getElementById('loadingCard').classList.remove('visible');
+  document.getElementById('errorMsg').classList.remove('visible'); document.getElementById('referralBanner').classList.remove('visible');
+  document.getElementById('seniorityWarning').classList.remove('visible'); document.getElementById('salaryWarning').classList.remove('visible');
+  document.getElementById('followUpText').style.display='none'; removeFile(); resultData=null; setStep(1);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+const STATUS_CYCLE=['to-apply','applied','interview','rejected'];
+const STATUS_LABELS={'to-apply':'To Apply','applied':'Applied','interview':'Interview','rejected':'Rejected'};
+const STATUS_CLASSES={'to-apply':'status-to-apply','applied':'status-applied','interview':'status-interview','rejected':'status-rejected'};
+
+function renderTracker() {
+  const apps = JSON.parse(localStorage.getItem('kaushik_apps')||'[]');
+  const el = document.getElementById('trackerList');
+  document.getElementById('stat-total').textContent=apps.length;
+  document.getElementById('stat-applied').textContent=apps.filter(a=>a.status==='applied').length;
+  document.getElementById('stat-interview').textContent=apps.filter(a=>a.status==='interview').length;
+  document.getElementById('stat-rejected').textContent=apps.filter(a=>a.status==='rejected').length;
+  if (!apps.length) { el.innerHTML='<div class="empty-tracker">📭 No applications yet.<br>Tailor a resume to start tracking.</div>'; return; }
+  el.innerHTML=`<div class="card-label">Applications</div>`+apps.map((a,i)=>`<div class="tracker-row"><div><div class="tracker-company">${a.company}</div><div class="tracker-role">${a.role}</div><div class="tracker-date">${a.date} · ${a.fit_score}/10</div></div><span class="status-badge ${STATUS_CLASSES[a.status]}" onclick="cycleStatus(${i})">${STATUS_LABELS[a.status]}</span></div>`).join('');
+}
+
+function cycleStatus(index) {
+  const apps=JSON.parse(localStorage.getItem('kaushik_apps')||'[]');
+  apps[index].status=STATUS_CYCLE[(STATUS_CYCLE.indexOf(apps[index].status)+1)%STATUS_CYCLE.length];
+  localStorage.setItem('kaushik_apps',JSON.stringify(apps)); renderTracker();
+}
+
+function exportCSV() {
+  const apps=JSON.parse(localStorage.getItem('kaushik_apps')||'[]');
+  if (!apps.length) { showToast('No applications to export'); return; }
+  const csv='Company,Role,Variant,Fit Score,Date,Status\n'+apps.map(a=>`"${a.company}","${a.role}","${a.variant}",${a.fit_score},"${a.date}","${STATUS_LABELS[a.status]}"`).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download=`kaushik_applications_${new Date().toLocaleDateString('en-CA')}.csv`; a.click(); showToast('Exported!');
+}
+
+function showToast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+renderTracker();
+</script>
+</body>
+</html>
